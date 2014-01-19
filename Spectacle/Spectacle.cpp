@@ -346,12 +346,10 @@ public:
 	return x;
   }
 
-  int setTable ( Chuck_String * q, Chuck_String * p)
+    int setTable ( const char* p, const char* q )
   {
-	const char p0 = p->str.c_str()[0];
-	const char q0 = q->str.c_str()[0];
-	//const char p0 = tablestring[0];
-	//const char q0 = typestring[0];
+	const char p0 = p[0];
+	const char q0 = q[0];
 	int table, type;
 
 	switch (p0)
@@ -369,7 +367,7 @@ public:
 		type = 3;
 		break;
 	  default:
-		printf ("Spectacle: error: first argument \"%s\" not valid.\n",p->str.c_str());
+		printf ("Spectacle: error: first argument \"%s\" not valid.\n",p);
 		return 0;
 	  }
 
@@ -385,7 +383,7 @@ public:
 		type = 2;
 		break;
 	  default:
-		printf ("Spectacle: error: second argument \"%s\" not valid.\n",q->str.c_str());
+		printf ("Spectacle: error: second argument \"%s\" not valid.\n",q);
 		return 0;
 	  }
 
@@ -857,7 +855,9 @@ CK_DLL_MFUN(spectacle_setTable)
   // get our c++ class pointer
   Spectacle * bcdata = (Spectacle *) OBJ_MEMBER_INT(SELF, spectacle_data_offset);
   // set the return value
-  RETURN->v_int = bcdata->setTable(GET_NEXT_STRING(ARGS),GET_NEXT_STRING(ARGS));
+  const char* q = GET_NEXT_STRING(ARGS)->str.c_str();
+  const char* p = GET_NEXT_STRING(ARGS)->str.c_str();
+  RETURN->v_int = bcdata->setTable(q,p);
 }
 
 // example implementation for setter
