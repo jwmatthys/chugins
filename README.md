@@ -26,6 +26,8 @@ List of New Chugins
   - Load and run LADSPA plugins
 - **Sigmund**
   - Sinusoidal analysis and pitch tracker by Miller Puckette
+- **ExpDelay**
+  - Exponential delay instrument which produces accelerating or deccelerating echoes, inspired by the music of Elainie Lillios.
 
 Chugins That I Am Working On
 --
