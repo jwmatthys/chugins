@@ -28,7 +28,7 @@ while (true)
   1 => pop.noteOn;
   Math.random2f(0.5,2) => ed.durcurve;
   Math.random2f(0.5,2) => ed.ampcurve;
-  Math.random2(5,20) => ed.reps;
+  Math.random2(5,30) => ed.reps;
   <<< "durcurve:",ed.durcurve(), "ampcurve:",ed.ampcurve(), "reps:",ed.reps() >>>;
   4::second => now;
 }
