@@ -15,6 +15,8 @@
 #include <limits.h>
 #include <dlfcn.h>
 #include <assert.h>
+#include <cstring>
+#include <string>
 
 #define DEFAULT_BUFSIZE 1
 
@@ -634,7 +636,9 @@ CK_DLL_MFUN(ladspa_load)
   // get our c++ class pointer
   Ladspa * bcdata = (Ladspa *) OBJ_MEMBER_INT(SELF, ladspa_data_offset);
   // set the return value
-  const char * name = GET_CK_STRING(ARGS)->str.data();
+  std::string chuckstr = GET_CK_STRING(ARGS)->str;
+  char * name = new char [chuckstr.length()];
+  strcpy (name, chuckstr.data());
   RETURN->v_int = bcdata->LADSPA_load(name);
 }
 
@@ -644,7 +648,9 @@ CK_DLL_MFUN(ladspa_label)
   // get our c++ class pointer
   Ladspa * bcdata = (Ladspa *) OBJ_MEMBER_INT(SELF, ladspa_data_offset);
   // set the return value
-  const char * name = GET_CK_STRING(ARGS)->str.data();
+  std::string chuckstr = GET_CK_STRING(ARGS)->str;
+  char * name = new char [chuckstr.length()];
+  strcpy (name, chuckstr.data());
   RETURN->v_int = bcdata->LadspaActivate(name);
 }
 
