@@ -634,7 +634,7 @@ CK_DLL_MFUN(ladspa_load)
   // get our c++ class pointer
   Ladspa * bcdata = (Ladspa *) OBJ_MEMBER_INT(SELF, ladspa_data_offset);
   // set the return value
-  const char * name = GET_CK_STRING(ARGS)->str.c_str();
+  const char * name = GET_CK_STRING(ARGS)->str.data();
   RETURN->v_int = bcdata->LADSPA_load(name);
 }
 
@@ -644,7 +644,7 @@ CK_DLL_MFUN(ladspa_label)
   // get our c++ class pointer
   Ladspa * bcdata = (Ladspa *) OBJ_MEMBER_INT(SELF, ladspa_data_offset);
   // set the return value
-  const char * name = GET_CK_STRING(ARGS)->str.c_str();
+  const char * name = GET_CK_STRING(ARGS)->str.data();
   RETURN->v_int = bcdata->LadspaActivate(name);
 }
 
