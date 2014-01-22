@@ -339,6 +339,7 @@ int LADSPA_info ()
 		printf ("LADSPA error: no plugin loaded yet!\n");
 	  else
 		printf ("LADSPA error: plugin not yet activated\n");
+	return 0;
   }
 
 private:
