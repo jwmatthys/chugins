@@ -81,9 +81,9 @@ public:
 	  delete inbuf[i];
 	for (int i=0; i<outports; i++)
 	  delete outbuf[i];
-	delete inbuf;
-	delete outbuf;
-	delete kbuf;
+	delete [] inbuf;
+	delete [] outbuf;
+	delete [] kbuf;
   }
   
   // for Chugins extending UGen
@@ -243,11 +243,10 @@ public:
 	printf ("LADSPA error: no plugin loaded yet\n");
 	return 0;
       }
-    const LADSPA_Descriptor * testDescriptor;
     printf ("Plugins available under this LADSPA file:\n");
     for (int i = 0;; i++)
       {
-	testDescriptor = pfDescriptorFunction(i);
+	const LADSPA_Descriptor * testDescriptor = pfDescriptorFunction(i);
 	if (!testDescriptor)
 	  break;
 	putchar('\n');
