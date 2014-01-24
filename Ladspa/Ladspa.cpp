@@ -11,12 +11,12 @@
 
 // general includes
 #include <math.h>
-#include <stdio.h>
-#include <limits.h>
-#include <dlfcn.h>
-#include <assert.h>
-#include <cstring>
-#include <string>
+//#include <stdio.h>
+//#include <limits.h>
+//#include <dlfcn.h>
+//#include <assert.h>
+//#include <cstring>
+//#include <string>
 
 #define DEFAULT_BUFSIZE 1
 
@@ -59,13 +59,13 @@ public:
   };
 
   // constructor
-  Ladspa( t_CKFLOAT fs)
+  Ladspa( t_CKFLOAT fs) :
+    pluginLoaded(false),
+    pluginActivated(false),
+    verbose(true),
+    srate(fs),
+    bufsize(DEFAULT_BUFSIZE)
   {
-    pluginLoaded = false;
-    pluginActivated = false;
-    verbose = true;
-    srate = fs;
-    bufsize = DEFAULT_BUFSIZE;
   }
 
   // destructor
@@ -649,10 +649,13 @@ CK_DLL_MFUN(ladspa_label)
   // get our c++ class pointer
   Ladspa * bcdata = (Ladspa *) OBJ_MEMBER_INT(SELF, ladspa_data_offset);
   // set the return value
-  std::string chuckstr = GET_CK_STRING(ARGS)->str;
-  char * name = new char [chuckstr.length()];
-  strcpy (name, chuckstr.data());
+  Chuck_String * cs = GET_CK_STRING(ARGS);
+  if (cs)
+    {
+    const char * name = cs->str.c_str();
   RETURN->v_int = bcdata->LadspaActivate(name);
+    }
+  else RETURN->v_int = 0;
 }
 
 // example implementation for setter
