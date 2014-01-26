@@ -27,7 +27,9 @@ List of New Chugins
 - **Sigmund**
   - Sinusoidal analysis and pitch tracker by Miller Puckette
 - **ExpDelay**
-  - Exponential delay instrument which produces accelerating or deccelerating echoes, inspired by the music of Elainie Lillios.
+  - Exponential delay instrument which produces accelerating or deccelerating echoes, inspired by the music of Elainie Lillios
+- **Overdrive**
+  - Simple distortion which simulates overdriving an amplifier by applying a nonlinear transfer function to the incoming signal
 
 Chugins That I Am Working On
 --
