@@ -4,7 +4,7 @@ CHUGIN_NAME=Multicomb
 
 # all of the c/cpp files that compose this chugin
 C_MODULES=
-CXX_MODULES=Multicomb.cpp
+CXX_MODULES=Odelay.cpp Ocomb.cpp Multicomb.cpp
 
 # where the chuck headers are
 CK_SRC_PATH?=../chuck/include/

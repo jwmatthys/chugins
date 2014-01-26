@@ -6,166 +6,331 @@
 // this should align with the correct versions of these ChucK files
 #include "chuck_dl.h"
 #include "chuck_def.h"
+#include "ulib_math.h"
+#include "Ocomb.h"
+
+#define NCOMBS      5
+#define DEF_MINFREQ 220
+#define DEF_MAXFREQ 880
+#define DEF_REVTIME 1
 
 // general includes
 #include <stdio.h>
 #include <limits.h>
 
-// declaration of chugin constructor
 CK_DLL_CTOR(multicomb_ctor);
-// declaration of chugin desctructor
 CK_DLL_DTOR(multicomb_dtor);
+CK_DLL_TICKF(multicomb_tickf);
 
-// example of getter/setter
-CK_DLL_MFUN(multicomb_setParam);
-CK_DLL_MFUN(multicomb_getParam);
+CK_DLL_MFUN(multicomb_setNum);
+CK_DLL_MFUN(multicomb_setMinfreq);
+CK_DLL_MFUN(multicomb_setMaxfreq);
+CK_DLL_MFUN(multicomb_setRange);
+CK_DLL_MFUN(multicomb_setRevtime);
 
-// for Chugins extending UGen, this is mono synthesis function for 1 sample
-CK_DLL_TICK(multicomb_tick);
+CK_DLL_MFUN(multicomb_getNum);
+CK_DLL_MFUN(multicomb_getMinfreq);
+CK_DLL_MFUN(multicomb_getMaxfreq);
+CK_DLL_MFUN(multicomb_getRevtime);
 
-// this is a special offset reserved for Chugin internal data
 t_CKINT multicomb_data_offset = 0;
 
-
 // class definition for internal Chugin data
-// (note: this isn't strictly necessary, but serves as example
-// of one recommended approach)
 class Multicomb
 {
 public:
-    // constructor
-    Multicomb( t_CKFLOAT fs)
-    {
-        m_param = 0;
-    }
+  Multicomb( t_CKFLOAT fs)
+  {
+    _srate = fs;
+	_num = NCOMBS;
+    _minfreq = DEF_MINFREQ;
+    _maxfreq = DEF_MAXFREQ;
+    _revtime = DEF_REVTIME;
+    _spread = new float[_num];
+    _delsamps = new int[_num];
+    _comb = new Ocomb*[_num];
+    for (int i=0; i< _num; i++)
+      {
+		_spread[i] = (float) i / (float) (_num-1);
+		float cfreq = rand2f(_minfreq,_maxfreq);
+		float loopt = 1.0 / cfreq;
+		_delsamps[i] = (int) (loopt * _srate + 0.5);
+		_comb[i] = new Ocomb(_srate, loopt, _revtime);
+		if (_comb[i]->frequency() == 0.0)
+		  printf("Multicomb error: comb delay allocation delay failed.\n");
+      }
+  }
 
-    // for Chugins extending UGen
-    SAMPLE tick( SAMPLE in )
-    {
-        // default: this passes whatever input is patched into Chugin
-        return in;
-    }
+  ~Multicomb()
+  {
+	delete [] _spread;
+	delete [] _delsamps;
+	for (int i=0; i<_num; i++)
+	  {
+		delete _comb[i];
+	  }
+	delete [] _comb;
+  }
 
-    // set parameter example
-    float setParam( t_CKFLOAT p )
-    {
-        m_param = p;
-        return p;
-    }
+  void tickf( SAMPLE* in, SAMPLE* out, int nframes)
+  {
+    memset (out, 0, sizeof(SAMPLE)*nframes);
+    out[0] = out[1] = 0.0;
+    for (int i=0; i<_num; i++)
+      {
+	float sig = _comb[i]->next(in[0],_delsamps[i]);
+	out[0] += sig * _spread[i];
+	out[1] += sig * (1.0 - _spread[i]);
+      }
+  }
+  
+  t_CKDUR setRevtime ( t_CKDUR p)
+  {
+    _revtime = (p/_srate);
+    for (int i=0; i<_num; i++)
+		_comb[i]->setReverbTime(_revtime);
+    return p;
+  }
 
-    // get parameter example
-    float getParam() { return m_param; }
-    
+  void setRange ( t_CKFLOAT lo, t_CKFLOAT hi )
+  {
+	_minfreq = lo;
+	_maxfreq = hi;
+    for (int i=0; i< _num; i++)
+      {
+		float cfreq = rand2f(_minfreq,_maxfreq);
+		float loopt = 1.0 / cfreq;
+		_delsamps[i] = (int) (loopt * _srate + 0.5);
+		_comb[i] = new Ocomb(_srate, loopt, _revtime);
+		if (_comb[i]->frequency() == 0.0)
+		  printf("Multicomb error: comb delay allocation delay failed.\n");
+      }
+  }
+
+  float setMinfreq ( t_CKFLOAT p )
+  {
+	_minfreq = p;
+    for (int i=0; i< _num; i++)
+      {
+		float cfreq = rand2f(_minfreq,_maxfreq);
+		float loopt = 1.0 / cfreq;
+		_delsamps[i] = (int) (loopt * _srate + 0.5);
+		_comb[i] = new Ocomb(_srate, loopt, _revtime);
+		if (_comb[i]->frequency() == 0.0)
+		  printf("Multicomb error: comb delay allocation delay failed.\n");
+      }
+	return p;
+  }
+
+  float setMaxfreq ( t_CKFLOAT p )
+  {
+	_maxfreq = p;
+    for (int i=0; i< _num; i++)
+      {
+		float cfreq = rand2f(_minfreq,_maxfreq);
+		float loopt = 1.0 / cfreq;
+		_delsamps[i] = (int) (loopt * _srate + 0.5);
+		_comb[i] = new Ocomb(_srate, loopt, _revtime);
+		if (_comb[i]->frequency() == 0.0)
+		  printf("Multicomb error: comb delay allocation delay failed.\n");
+      }
+	return p;
+  }
+
+  int setNum ( t_CKINT p )
+  {
+	delete [] _spread;
+	delete [] _delsamps;
+	for (int i=0; i<_num; i++)
+	  {
+		delete _comb[i];
+	  }
+	delete [] _comb;
+	if (p>0) _num = p;		
+    _spread = new float[_num];
+    _delsamps = new int[_num];
+    _comb = new Ocomb*[_num];
+    for (int i=0; i< _num; i++)
+      {
+		_spread[i] = (float) i / (float) (_num-1);
+		float cfreq = rand2f(_minfreq,_maxfreq);
+		float loopt = 1.0 / cfreq;
+		_delsamps[i] = (int) (loopt * _srate + 0.5);
+		_comb[i] = new Ocomb(_srate, loopt, _revtime);
+		if (_comb[i]->frequency() == 0.0)
+		  printf("Multicomb error: comb delay allocation delay failed.\n");
+      }
+  }	
+  
+  int getNum() { return _num; }
+  float getMinfreq() { return _minfreq; }
+  float getMaxfreq() { return _maxfreq; }
+  t_CKDUR getRevtime() { return _revtime * _srate; }
+  
 private:
-    // instance data
-    float m_param;
-};
 
+  float rand2f (float min, float max)
+  {
+    return min + (max-min)*(::random()/(t_CKFLOAT)CK_RANDOM_MAX);
+  }
+  unsigned int _num;
+  float _srate;
+  Ocomb **_comb;
+  int *_delsamps;
+  float *_spread;
+  float _minfreq, _maxfreq;
+  float _revtime;
+  float m_param;
+};
 
 // query function: chuck calls this when loading the Chugin
 // NOTE: developer will need to modify this function to
 // add additional functions to this Chugin
 CK_DLL_QUERY( Multicomb )
 {
-    // hmm, don't change this...
-    QUERY->setname(QUERY, "Multicomb");
-    
-    // begin the class definition
-    // can change the second argument to extend a different ChucK class
-    QUERY->begin_class(QUERY, "Multicomb", "UGen");
+  // hmm, don't change this...
+  QUERY->setname(QUERY, "Multicomb");
+  
+  // begin the class definition
+  // can change the second argument to extend a different ChucK class
+  QUERY->begin_class(QUERY, "Multicomb", "UGen");
+  
+  // register the constructor (probably no need to change)
+  QUERY->add_ctor(QUERY, multicomb_ctor);
+  // register the destructor (probably no need to change)
+  QUERY->add_dtor(QUERY, multicomb_dtor);
+  
+  // for UGen's only: add tickf function
+  QUERY->add_ugen_funcf(QUERY, multicomb_tickf, NULL, 2, 2);
+  
+  // NOTE: if this is to be a UGen with more than 1 channel, 
+  // e.g., a multichannel UGen -- will need to use add_ugen_funcf()
+  // and declare a tickf function using CK_DLL_TICKF
+  
+  QUERY->add_mfun(QUERY, multicomb_setNum, "int", "num");
+  QUERY->add_arg(QUERY, "int", "num");
 
-    // register the constructor (probably no need to change)
-    QUERY->add_ctor(QUERY, multicomb_ctor);
-    // register the destructor (probably no need to change)
-    QUERY->add_dtor(QUERY, multicomb_dtor);
-    
-    // for UGen's only: add tick function
-    QUERY->add_ugen_func(QUERY, multicomb_tick, NULL, 1, 1);
-    
-    // NOTE: if this is to be a UGen with more than 1 channel, 
-    // e.g., a multichannel UGen -- will need to use add_ugen_funcf()
-    // and declare a tickf function using CK_DLL_TICKF
+  QUERY->add_mfun(QUERY, multicomb_setMinfreq, "float", "minfreq");
+  QUERY->add_arg(QUERY, "float", "minfreq");
 
-    // example of adding setter method
-    QUERY->add_mfun(QUERY, multicomb_setParam, "float", "param");
-    // example of adding argument to the above method
-    QUERY->add_arg(QUERY, "float", "arg");
+  QUERY->add_mfun(QUERY, multicomb_setMaxfreq, "float", "maxfreq");
+  QUERY->add_arg(QUERY, "float", "maxfreq");
 
-    // example of adding getter method
-    QUERY->add_mfun(QUERY, multicomb_getParam, "float", "param");
-    
-    // this reserves a variable in the ChucK internal class to store 
-    // referene to the c++ class we defined above
-    multicomb_data_offset = QUERY->add_mvar(QUERY, "int", "@m_data", false);
+  QUERY->add_mfun(QUERY, multicomb_setRange, "void", "set");
+  QUERY->add_arg(QUERY, "float", "minfreq");
+  QUERY->add_arg(QUERY, "float", "maxfreq");
 
-    // end the class definition
-    // IMPORTANT: this MUST be called!
-    QUERY->end_class(QUERY);
-
-    // wasn't that a breeze?
-    return TRUE;
+  QUERY->add_mfun(QUERY, multicomb_setRevtime, "dur", "revtime");
+  QUERY->add_arg(QUERY, "dur", "revtime");
+  
+  // example of adding getter method
+  QUERY->add_mfun(QUERY, multicomb_getNum, "int", "num");
+  QUERY->add_mfun(QUERY, multicomb_getMinfreq, "float", "minfreq");
+  QUERY->add_mfun(QUERY, multicomb_getMaxfreq, "float", "maxfreq");
+  QUERY->add_mfun(QUERY, multicomb_getRevtime, "dur", "revtime");
+  
+  // this reserves a variable in the ChucK internal class to store 
+  // referene to the c++ class we defined above
+  multicomb_data_offset = QUERY->add_mvar(QUERY, "int", "@m_data", false);
+  
+  // end the class definition
+  // IMPORTANT: this MUST be called!
+  QUERY->end_class(QUERY);
+  
+  // wasn't that a breeze?
+  return TRUE;
 }
 
 
 // implementation for the constructor
 CK_DLL_CTOR(multicomb_ctor)
 {
-    // get the offset where we'll store our internal c++ class pointer
-    OBJ_MEMBER_INT(SELF, multicomb_data_offset) = 0;
-    
-    // instantiate our internal c++ class representation
-    Multicomb * bcdata = new Multicomb(API->vm->get_srate());
-    
-    // store the pointer in the ChucK object member
-    OBJ_MEMBER_INT(SELF, multicomb_data_offset) = (t_CKINT) bcdata;
+  // get the offset where we'll store our internal c++ class pointer
+  OBJ_MEMBER_INT(SELF, multicomb_data_offset) = 0;
+  
+  // instantiate our internal c++ class representation
+  Multicomb * bcdata = new Multicomb(API->vm->get_srate());
+  
+  // store the pointer in the ChucK object member
+  OBJ_MEMBER_INT(SELF, multicomb_data_offset) = (t_CKINT) bcdata;
 }
 
 
 // implementation for the destructor
 CK_DLL_DTOR(multicomb_dtor)
 {
-    // get our c++ class pointer
-    Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
-    // check it
-    if( bcdata )
+  // get our c++ class pointer
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  // check it
+  if( bcdata )
     {
-        // clean up
-        delete bcdata;
-        OBJ_MEMBER_INT(SELF, multicomb_data_offset) = 0;
-        bcdata = NULL;
+	  // clean up
+	  delete bcdata;
+	  OBJ_MEMBER_INT(SELF, multicomb_data_offset) = 0;
+	  bcdata = NULL;
     }
 }
 
-
-// implementation for tick function
-CK_DLL_TICK(multicomb_tick)
+CK_DLL_TICKF(multicomb_tickf)
 {
-    // get our c++ class pointer
-    Multicomb * c = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
- 
-    // invoke our tick function; store in the magical out variable
-    if(c) *out = c->tick(in);
-
-    // yes
-    return TRUE;
+  Multicomb * c = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  if(c) c->tickf(in,out, nframes);
+  return TRUE;
 }
 
-
-// example implementation for setter
-CK_DLL_MFUN(multicomb_setParam)
+CK_DLL_MFUN(multicomb_setNum)
 {
-    // get our c++ class pointer
-    Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
-    // set the return value
-    RETURN->v_float = bcdata->setParam(GET_NEXT_FLOAT(ARGS));
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  RETURN->v_int = bcdata->setNum(GET_NEXT_INT(ARGS));
 }
 
-
-// example implementation for getter
-CK_DLL_MFUN(multicomb_getParam)
+CK_DLL_MFUN(multicomb_setMinfreq)
 {
-    // get our c++ class pointer
-    Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
-    // set the return value
-    RETURN->v_float = bcdata->getParam();
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  RETURN->v_float = bcdata->setMinfreq(GET_NEXT_FLOAT(ARGS));
+}
+
+CK_DLL_MFUN(multicomb_setMaxfreq)
+{
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  RETURN->v_float = bcdata->setMaxfreq(GET_NEXT_FLOAT(ARGS));
+}
+
+CK_DLL_MFUN(multicomb_setRange)
+{
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  float high = GET_NEXT_FLOAT(ARGS);
+  float low = GET_NEXT_FLOAT(ARGS);
+  bcdata->setRange(low,high);
+}
+
+CK_DLL_MFUN(multicomb_setRevtime)
+{
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  RETURN->v_dur = bcdata->setRevtime(GET_NEXT_DUR(ARGS));
+}
+
+// Get methods
+CK_DLL_MFUN(multicomb_getNum)
+{
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  RETURN->v_int = bcdata->getNum();
+}
+
+CK_DLL_MFUN(multicomb_getMinfreq)
+{
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  RETURN->v_float = bcdata->getMinfreq();
+}
+
+CK_DLL_MFUN(multicomb_getMaxfreq)
+{
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  RETURN->v_float = bcdata->getMaxfreq();
+}
+
+CK_DLL_MFUN(multicomb_getRevtime)
+{
+  Multicomb * bcdata = (Multicomb *) OBJ_MEMBER_INT(SELF, multicomb_data_offset);
+  RETURN->v_dur = bcdata->getRevtime();
 }
